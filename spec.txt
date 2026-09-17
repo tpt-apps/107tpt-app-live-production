@@ -1,0 +1,1015 @@
+TPT App Live Production
+
+1. Product Definition
+
+Product name: TPT Live Production
+Repository: tpt-app-live-production
+Product family: TPT Apps
+Category: Real-time operator console for live video, audio, and lighting production
+Primary distribution: Offline desktop application
+Secondary interfaces: CLI for show-file validation and headless rehearsal testing; local API for control-surface and third-party integration
+Target platforms: Windows first; Linux second (relevant for dedicated production rack hardware); macOS only when the underlying TPT media/control stack is sufficiently mature
+
+1.1 Executive summary
+
+TPT Live Production is a native, real-time application that lets a single operator (or a small team) run a live event — switching video sources, mixing audio, and cueing lighting — from one unified console.
+
+The core proposition is:
+
+One application to orchestrate video, audio, and lighting for live productions.
+
+Show
+  │
+  ├── Video
+  ├── Audio
+  └── Lighting
+        │
+    Unified cue stack
+        │
+      Output
+
+Today, a small production team typically assembles this capability from several disconnected tools: a video switcher (hardware or software), a separate audio mixer or DAW-adjacent routing tool, a separate lighting console, and glue software (such as a button-triggered control-surface bridge) to loosely tie them together. TPT Live Production's value is collapsing that stack into one native, real-time-safe application built on a shared foundation, so a single cue can affect video, audio, and lighting together, in frame-accurate sync, without three separate pieces of software needing to agree with each other.
+
+This product is explicitly the operator's real-time console — the thing a human being sits in front of while a show is happening. It is not a rule-authoring or automation tool (that is TPT AV Automation, see section 12) and it is not a pre-show installation testing tool (that is TPT AV Commissioning, see section 13). TPT Live Production is where a live show is actually run.
+
+The application should operate entirely on the local machine/network by default. No cloud dependency should sit on the live signal path.
+
+2. Commercial Objective
+
+The initial product should target teams who run live events and currently either overpay for a fragmented hardware/software stack or underinvest and run shows with unreliable, ad-hoc tooling.
+
+Primary customer profiles:
+
+Live event production companies
+
+Corporate AV teams running hybrid/streamed events, town halls, and conferences
+
+Houses of worship running weekly services
+
+Theatres and performing-arts venues
+
+Broadcast studios producing live-to-air or live-streamed programming
+
+Education/lecture-capture teams with a live-audience or live-streamed component
+
+Community and independent broadcasters
+
+The product should be positioned as professional live-production infrastructure, not a hobbyist streaming tool.
+
+2.1 Initial pricing hypothesis
+
+Pricing is a commercial hypothesis and must be validated before launch.
+
+Suggested initial structure:
+
+Edition
+
+Indicative price
+
+Intended buyer
+
+Standard
+
+$1,499
+
+Single-operator venue/room, moderate source/output count
+
+Professional
+
+$2,999
+
+Multi-camera, multi-output live production with lighting integration
+
+Broadcast
+
+$4,999+
+
+Higher channel counts, redundancy, and integrator-managed deployments
+
+Avoid recurring cloud infrastructure costs in the core product. A perpetual licence should be the default commercial model, consistent with the rest of the TPT Apps family.
+
+2.2 Competitive positioning
+
+Existing categories address parts of this problem separately. Software video switchers (vMix, OBS Studio, Wirecast) handle video switching and streaming output well but treat audio mixing and lighting as secondary or absent. Hardware switcher ecosystems (Blackmagic ATEM and similar) are excellent at video switching but require separate hardware/software for audio and lighting. Lighting consoles (grandMA, ChamSys, and similar) are purpose-built for complex lighting design but have no video/audio switching awareness. Companion-style tools bridge some of these gaps via button-triggered macros, but do not provide an integrated mixer/switcher/cue-stack model of their own.
+
+TPT should therefore not attempt to win merely by adding "one more feature" to any single category. The differentiators should be:
+
+Native Rust implementation with predictable, low-latency real-time performance.
+
+A single cue stack that can drive video, audio, and lighting together, rather than three disconnected tools loosely bridged by macros.
+
+Offline-first, local-network operation with no cloud dependency on the live signal path.
+
+Explicit rehearsal/preview vs. live/on-air state, reducing the chance of an operator error going out live.
+
+Built-in failsafe behaviour (input-loss handling, audio mute-on-error) as product features, not something the operator must assemble from third-party plugins.
+
+Shared foundation with TPT AV Commissioning (pre-show device validation) and TPT AV Automation (background rule-driven behaviour), so a customer already using those tools gains a coherent, integrated production stack rather than three unrelated purchases.
+
+3. Product Principles
+
+3.1 Real-time-safe execution
+
+Frame-accurate video switching and glitch-free audio are the core technical promise of this product. The underlying media engines' real-time-safety guarantees are load-bearing here in a way they are not for the more analysis-oriented TPT Apps.
+
+Requirements:
+
+no unbounded allocation on the audio or video render path during live operation
+
+no blocking I/O on the live signal path
+
+predictable, bounded worst-case latency for switch/cue execution
+
+graceful degradation under CPU/GPU pressure (see section 14) rather than dropped program frames
+
+3.2 Operator-first UI
+
+The UI must be designed for live, high-pressure operation:
+
+large, unambiguous controls for the actions an operator performs most (cut, fade, cue advance)
+
+a UI that never blocks on a slow background operation (e.g. loading a new asset) while a show is live
+
+visual state that is unmistakable at a glance — an operator must never be unsure whether a control affects preview or program
+
+3.3 Rehearsal is not live
+
+The application must maintain an explicit, always-visible distinction between:
+
+Rehearsal / Preview mode — no signal reaches program output, lighting fixtures, or any live audience-facing output
+
+Live / On-Air mode — the cue stack, switcher, mixer, and lighting engine are driving real outputs
+
+This mirrors the simulation/armed distinction used in TPT AV Automation, applied here to real-time operator control rather than background rules.
+
+3.4 Live operation is not automation authoring
+
+TPT Live Production executes the operator's real-time decisions and pre-programmed cue stacks. It is not where automation rules (triggers, conditions, background actions) are authored — that is the explicit role of TPT AV Automation (section 12). Live Production may optionally call into an armed AV Automation rule pack for background conditions during a show, but it does not duplicate AV Automation's rule-editing UI or domain model.
+
+3.5 Offline first
+
+All core live-operation functionality — switching, mixing, lighting cues, cue-stack playback — must work without internet access.
+
+The application must not require:
+
+cloud rendering
+
+cloud licensing checks to keep a live show running
+
+remote AI APIs
+
+account creation
+
+telemetry
+
+Internet connectivity may optionally be used for:
+
+software updates
+
+licence activation
+
+streaming-output destinations chosen explicitly by the operator (treated as an output device, not a mandatory dependency of core operation)
+
+4. Proposed Repository Structure
+
+tpt-app-live-production/
+├── Cargo.toml
+├── README.md
+├── LICENSE
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── docs/
+│   ├── architecture.md
+│   ├── show-model.md
+│   ├── cue-model.md
+│   ├── switcher.md
+│   ├── mixer.md
+│   ├── lighting.md
+│   ├── reliability.md
+│   └── integrations.md
+├── crates/
+│   ├── tpt-app-live-production-core/
+│   ├── tpt-app-live-production-model/
+│   ├── tpt-app-live-production-switcher/
+│   ├── tpt-app-live-production-mixer/
+│   ├── tpt-app-live-production-lighting/
+│   ├── tpt-app-live-production-cues/
+│   ├── tpt-app-live-production-surfaces/
+│   ├── tpt-app-live-production-cli/
+│   ├── tpt-app-live-production-tauri/
+│   └── tpt-app-live-production-test/
+├── shows/
+│   ├── examples/
+│   └── templates/
+└── tests/
+    ├── fixtures/
+    ├── latency/
+    ├── integration/
+    └── chaos/
+
+The exact workspace split can be simplified if the project is initially small. The important architectural boundary is between the real-time engine core (switcher/mixer/lighting/cue execution) and the application shells (desktop, CLI) that host it.
+
+5. Foundation Dependencies
+
+The application should reuse TPT foundations rather than reimplement video/audio/lighting/protocol handling.
+
+5.1 Primary dependencies
+
+tpt-kinetix
+
+Primary video engine.
+
+Responsibilities:
+
+decode of live and file-based video sources
+
+GPU compositing/switching between sources
+
+playback of pre-recorded assets (video clips, stills)
+
+frame-accurate timing for cuts and transitions
+
+This is the core engine underneath the video switcher (section 7).
+
+tpt-cadence / tpt-audio / tpt-dsp
+
+Audio foundation.
+
+Responsibilities:
+
+audio decode/encode for input sources and playback assets
+
+mixing and routing between channels and buses
+
+level metering, gain automation
+
+real-time-safe processing suitable for live audio, per tpt-dsp's allocation-free design
+
+This is the core engine underneath the audio mixer (section 8).
+
+tpt-av-control
+
+Control-protocol foundation.
+
+Responsibilities:
+
+DMX/Art-Net/sACN output for lighting cues
+
+OSC/MIDI for control-surface input and inter-device messaging
+
+control-surface (fader/button) input handling for operator control
+
+This is the core engine underneath the lighting cue engine (section 9) and the control-surface layer (section 11).
+
+tpt-av-sync
+
+Timing/synchronisation foundation.
+
+Responsibilities:
+
+cross-output timing correlation, so a cue affecting video, audio, and lighting together lands in frame-accurate sync across all three
+
+drift measurement/correction for multi-output setups
+
+tpt-av-asset
+
+Asset management foundation.
+
+Responsibilities:
+
+managing pre-loaded video/audio playback assets for the show
+
+proxy/cache infrastructure reused from the same foundation underlying TPT Media Asset Intelligence
+
+resumable/background loading of large assets without blocking live operation
+
+tpt-av-test
+
+Testing/conformance foundation.
+
+Responsibilities:
+
+golden cue-stack regression fixtures
+
+latency/frame-timing regression harnesses
+
+deterministic regression tests reused from the other TPT Apps
+
+The commercial application must add product-level switcher/mixer/cue-stack logic on top of this foundation rather than duplicating media decode, control-protocol, or timing work that already exists in these crates.
+
+5.2 Relationship to sibling TPT Apps
+
+TPT Live Production is designed to integrate with, but remain architecturally independent of, two sibling TPT Apps:
+
+TPT AV Automation (app 4) — Live Production can optionally invoke an armed AV Automation rule pack for background, condition-driven behaviour during a show (e.g. automatic failover if a camera input drops). Live Production itself does not include a rule-authoring UI; it calls into Automation's engine as an integration, not a dependency required for core operation. See section 12 for the detailed boundary.
+
+TPT AV Commissioning (app 2) — Live Production can optionally import a validated device/display/audio inventory from a completed commissioning report, avoiding re-entering device configuration that was already validated during installation. See section 13.
+
+Both integrations are optional and must degrade gracefully when the sibling application is not installed.
+
+6. Core Domain Model
+
+6.1 Show
+
+struct Show {
+    id: ShowId,
+    name: String,
+    sources: Vec<Source>,
+    outputs: Vec<Output>,
+    fixtures: Vec<Fixture>,
+    cue_stack: CueStack,
+    mode: OperationMode,
+}
+
+enum OperationMode {
+    Rehearsal,
+    Live,
+}
+
+6.2 Source and Output
+
+enum SourceKind {
+    LiveVideoInput,
+    LiveAudioInput,
+    PlaybackAsset(AssetId),
+    Graphic,
+}
+
+struct Source {
+    id: SourceId,
+    kind: SourceKind,
+    label: String,
+}
+
+enum OutputKind {
+    ProgramVideo,
+    AuxVideo,
+    ProgramAudio,
+    AuxAudio,
+    LightingUniverse,
+}
+
+struct Output {
+    id: OutputId,
+    kind: OutputKind,
+    label: String,
+}
+
+6.3 Mixer/Bus
+
+struct AudioBus {
+    id: BusId,
+    label: String,
+    inputs: Vec<(SourceId, ChannelGain)>,
+    output: OutputId,
+}
+
+6.4 Fixture and Lighting Scene
+
+struct Fixture {
+    id: FixtureId,
+    label: String,
+    universe: UniverseId,
+    channels: Vec<DmxChannel>,
+}
+
+struct LightingScene {
+    id: LightingSceneId,
+    label: String,
+    values: Vec<(FixtureId, ChannelValues)>,
+    fade: Duration,
+}
+
+6.5 Cue and Cue Stack
+
+struct Cue {
+    id: CueId,
+    number: CueNumber,
+    label: String,
+    video_transition: Option<Transition>,
+    audio_changes: Vec<AudioChange>,
+    lighting_scene: Option<LightingSceneId>,
+    advance: AdvanceMode,
+}
+
+enum AdvanceMode {
+    Manual,
+    Timed(Duration),
+    Follow,
+}
+
+struct CueStack {
+    cues: Vec<Cue>,
+    current_index: usize,
+}
+
+6.6 Transition
+
+enum Transition {
+    Cut,
+    Fade { duration: Duration },
+    Wipe { pattern: WipePattern, duration: Duration },
+}
+
+7. Video Switching Engine
+
+The switcher follows the classic preview/program (PVW/PGM) model familiar to live-production operators.
+
+Sources
+  │
+  ├── PVW bus  ── preview monitor
+  │
+  └── PGM bus  ── live program output
+        │
+     Transition (cut/fade/wipe)
+
+Requirements:
+
+selecting a new PVW source must never affect PGM output
+
+a transition (cut/fade/wipe) commits the PVW source to PGM
+
+compositing/layering (e.g. a graphic overlay on top of a camera source) is handled via tpt-kinetix's GPU compositing
+
+switch timing must be frame-accurate against the program output's frame rate
+
+8. Audio Mixing Engine
+
+Channel strips per input source, routed to one or more buses (program, aux/monitor, recording).
+
+Source 1  ──┐
+Source 2  ──┼── Program Bus ── Output
+Source 3  ──┘
+
+Source 1  ──── Aux/Monitor Bus ── Output
+
+Requirements:
+
+per-channel gain, mute, and pan
+
+bus-level metering
+
+gain/mute changes can be tied to a cue (e.g. "cue 12 mutes source 3 and raises source 1")
+
+no audible glitch (click/pop) on cue-triggered gain changes; changes must be ramped, not stepped, unless the operator explicitly requests an instant cut
+
+9. Lighting Cue Engine
+
+Explicitly a secondary, supporting engine in MVP scope relative to video/audio, but a first-class cue type from day one — this is what makes a single cue able to affect video, audio, and lighting together, which is the product's core differentiator.
+
+Requirements:
+
+DMX/Art-Net/sACN scene recall via tpt-av-control
+
+configurable fade time per lighting scene
+
+a lighting scene can be attached to a cue alongside a video transition and audio changes, executed together
+
+MVP scope is scene recall with fade timing; complex lighting effects/chases are explicitly deferred (see section 22).
+
+10. Cue Stack and Timeline
+
+The cue stack is the central operator abstraction.
+
+Cue 1   Cold open           [video: cut to Cam 1] [audio: unmute host mic]
+Cue 2   Guest intro         [video: fade to Cam 2] [lighting: guest-scene]
+Cue 3   Sponsor break       [video: cut to VT]     [audio: duck mics]
+Cue 4   Return              [video: fade to Cam 1]
+
+GO ▶
+
+Requirements:
+
+cues advance manually via an operator "GO" action, on a timer, or automatically following a preceding cue's completion
+
+a cue stack can be built and rehearsed in Rehearsal mode with zero effect on live outputs
+
+reordering, inserting, or editing a cue must be possible without disrupting a currently-live cue
+
+11. Control Surfaces and Operator Input
+
+Physical or virtual fader/button control surfaces, via tpt-av-control, mapped to switcher, mixer, and cue-stack functions (e.g. a physical button mapped to "GO," a fader mapped to a specific audio channel's gain).
+
+Requirements:
+
+configurable mapping between physical control-surface inputs and application functions
+
+visual feedback (where the surface supports it) reflecting current state (e.g. an LED indicating the current PGM source)
+
+graceful handling of a control surface disconnecting mid-show (operation continues via on-screen controls)
+
+12. Relationship to TPT AV Automation
+
+TPT Live Production
+  (operator's real-time console)
+        │
+        │  optional integration
+        ▼
+TPT AV Automation
+  (background rule engine)
+
+Live Production is where a human operator makes real-time decisions and advances a pre-built cue stack. AV Automation is where condition-driven background behaviour is authored and armed as reusable rules (see `4tpt-app-av-automation/spec.txt`).
+
+The products integrate, but neither absorbs the other:
+
+Live Production can optionally invoke an armed AV Automation rule pack (e.g. "if the main camera signal drops, switch to backup and alert the operator") without embedding a rule-editor UI of its own.
+
+AV Automation can optionally treat Live Production's show state (current cue, active sources) as trigger input, if both products are installed.
+
+Neither product requires the other to function. A customer who only needs real-time operator control does not need to learn AV Automation's rule format, and vice versa.
+
+13. Relationship to TPT AV Commissioning
+
+Where a venue's AV installation has already been validated using TPT AV Commissioning (`2tpt-app-av-commisioning/spec.txt`), Live Production can optionally import that commissioning report's device/display/audio inventory as its starting source/output/fixture list, avoiding duplicate manual configuration before a show. This import is optional; Live Production must be fully configurable standalone without TPT AV Commissioning installed.
+
+14. Reliability and Failsafe Operation
+
+A live show cannot tolerate a silent failure.
+
+14.1 Input-loss handling
+
+On loss of a live video or audio input signal, the application must apply an operator-configured failsafe policy:
+
+freeze last good frame
+
+cut to a designated backup source
+
+display a "signal lost" slate
+
+Audio failsafe defaults to mute-on-error rather than passing corrupted/glitched audio to program output.
+
+14.2 Watchdog supervision
+
+The core engine should run under watchdog supervision so an unexpected process exit can be detected and, where possible, recovered without manual restart mid-show, consistent with the watchdog approach used in TPT AV Automation.
+
+14.3 Graceful degradation under load
+
+Under CPU/GPU pressure, the application must degrade non-critical processing (e.g. preview-monitor resolution, non-program compositing effects) before ever dropping frames or audio on program output.
+
+Available headroom
+       │
+       ▼
+  Degrade preview quality
+       │
+       ▼
+  Degrade non-program effects
+       │
+       ▼
+  Program output is the last thing to degrade
+
+15. Desktop UI
+
+Use a native Tauri application, with a real-time rendering surface for video preview/program monitors distinct from the general application chrome.
+
+15.1 Live Operation Console (primary screen)
+
+PREVIEW              PROGRAM
+┌───────────┐        ┌───────────┐
+│  Cam 2    │        │  Cam 1    │
+└───────────┘        └───────────┘
+[CUT] [FADE] [WIPE]
+
+AUDIO
+Ch1 ▓▓▓▓▓░░░  Ch2 ▓▓▓░░░░░░  Ch3 ▓▓▓▓▓▓▓░░
+
+CUE STACK
+▶ Cue 3  Sponsor break
+  Cue 4  Return
+
+MODE: LIVE
+
+The MODE indicator (Rehearsal/Live) must be unmistakable at all times, using colour and text together, not colour alone.
+
+15.2 Rehearsal/Programming Mode
+
+The same layout, clearly marked Rehearsal, with all outputs disconnected from live displays/PA/lighting, used to build and test the cue stack before a show.
+
+15.3 Source/Output Configuration
+
+Configure sources, outputs, buses, and fixtures; optionally import from a TPT AV Commissioning report (section 13).
+
+15.4 Control Surface Mapping
+
+Assign physical/virtual control-surface inputs to application functions (section 11).
+
+15.5 Show Browser
+
+Manage saved show files, duplicate a show as a template, view show history/logs from past live sessions.
+
+16. CLI and Automation Interface
+
+Given the inherently interactive, real-time nature of live operation, the CLI's role is narrower than in the other TPT Apps: validating a show file and headlessly rehearsing a cue stack, rather than driving a live show non-interactively.
+
+Example:
+
+tpt-live-production validate \
+  --show ./shows/sunday-service.tptshow
+
+tpt-live-production rehearse \
+  --show ./shows/sunday-service.tptshow \
+  --headless
+
+Machine-readable result:
+
+{
+  "show": "sunday-service",
+  "cues": 24,
+  "issues": 0
+}
+
+Exit codes:
+
+0 = SUCCESS
+1 = WARNINGS
+2 = VALIDATION_FAILED
+3 = CONFIGURATION_ERROR
+4 = INPUT_ERROR
+5 = INTERNAL_ERROR
+
+The exit-code contract must remain stable.
+
+17. Local API
+
+The application may expose an optional localhost-only API for control-surface bridges, integration with TPT AV Automation, or third-party show-control tools.
+
+Default:
+
+127.0.0.1
+
+Never bind externally by default.
+
+Potential endpoints:
+
+GET  /show/state
+POST /show/cue/next
+POST /show/cue/:id/go
+GET  /health
+WS   /events
+
+The API should be disabled by default unless explicitly enabled.
+
+18. Persistence
+
+Show files are the primary artefact: a versioned, as-human-readable-as-practical format capturing sources, outputs, buses, fixtures, and the cue stack.
+
+Example:
+
+show:
+  schema_version: 1
+  name: "Sunday Service"
+
+sources:
+  - id: cam1
+    kind: live_video_input
+
+cues:
+  - number: 1
+    label: "Cold open"
+    video: { transition: cut, source: cam1 }
+
+SQLite (or an embedded store) should hold show history/logs from past live sessions (start/stop times, cue-advance timestamps, any failsafe events triggered) — useful for post-show review, distinct from the show file itself.
+
+19. Performance and Real-Time Targets
+
+Initial targets should be treated as engineering goals to validate, not guarantees.
+
+Switch latency
+
+Cut transitions should execute within a small, bounded number of frames of the operator's action.
+
+Audio latency
+
+End-to-end audio path latency should remain low enough for live monitoring without perceptible delay.
+
+Frame stability
+
+Program output must not drop frames under normal operating load; any degradation must follow the graceful-degradation order in section 14.3.
+
+Startup/load
+
+Loading a show file and reaching an operable state should complete quickly enough not to delay a scheduled show start.
+
+Latency and frame-timing benchmarks should be treated as pass/fail regression gates in CI, not just informal targets (see section 21).
+
+20. Security and Privacy
+
+Requirements:
+
+no mandatory network access for core live operation
+
+local API disabled by default; token-based auth when enabled
+
+safe handling of malformed/unexpected input signals (corrupt video stream, malformed control-surface message) without crashing mid-show
+
+no automatic external asset fetching during a live show
+
+no telemetry of show content
+
+21. Testing Strategy
+
+21.1 Unit tests
+
+Every engine component (switcher transitions, mixer routing, lighting cue recall, cue-stack advance logic) must have:
+
+valid input
+
+invalid input
+
+boundary case
+
+malformed input
+
+expected result
+
+21.2 Golden cue-stack tests
+
+Maintain example show files with expected switcher/mixer/lighting state after each cue, so engine changes cannot silently change existing show behaviour.
+
+21.3 Latency/frame-timing benchmarks
+
+Maintain automated benchmarks for switch latency, audio latency, and frame stability under load, treated as regression gates that fail CI if performance degrades beyond defined thresholds.
+
+21.4 Chaos tests
+
+Explicitly test:
+
+input signal loss mid-cue
+
+control-surface disconnect mid-show
+
+engine process killed and restarted via watchdog
+
+CPU/GPU pressure triggering graceful degradation
+
+malformed show-file input
+
+21.5 Fuzzing
+
+Fuzz:
+
+the show-file parser
+
+inbound control-surface message parsing
+
+the local API request handling
+
+Reuse tpt-av-test where possible.
+
+21.6 Regression tests
+
+Every production bug should produce a permanent regression fixture.
+
+22. MVP
+
+The first commercial MVP should not implement every possible live-production feature.
+
+MVP scope:
+
+Video switching
+
+multi-source PVW/PGM model
+
+cut and fade transitions
+
+basic compositing (single overlay layer)
+
+Audio mixing
+
+channel strips with gain/mute/pan
+
+bus routing (program, one aux bus)
+
+cue-triggered ramped gain/mute changes
+
+Lighting (secondary/supporting)
+
+DMX scene recall with fade timing, attachable to a cue
+
+Cue stack
+
+manual and timed cue advance
+
+rehearsal mode fully isolated from live outputs
+
+Control surfaces
+
+at least one common control-surface protocol (OSC or MIDI) for operator input
+
+Reliability
+
+input-loss failsafe policy (freeze/backup/slate)
+
+audio mute-on-error
+
+watchdog-supervised process
+
+Interfaces
+
+show-file save/load
+
+CLI validate and headless rehearse
+
+desktop live-operation console and rehearsal mode
+
+Explicitly out of MVP scope: complex lighting effects/chases, wipe transition patterns beyond a basic set, multi-operator/networked show collaboration, deep AV Automation rule-authoring embedded in this product, built-in streaming/encoding output management (a streaming destination is treated as an output device type, not a built-in encoder stack, in MVP).
+
+23. Post-MVP
+
+Phase 2:
+
+richer lighting effects/chases beyond scene recall
+
+deeper AV Automation integration for background failover rules during a live show
+
+multi-operator/networked control (e.g. a separate audio operator and video operator collaborating on one show)
+
+additional transition types (wipe patterns, stingers)
+
+Phase 3:
+
+built-in streaming/encoding output management
+
+multi-site/remote production (contribution feeds from remote locations)
+
+plugin SDK for custom source/output device drivers
+
+Cloud infrastructure should not be introduced unless customers demonstrate a real need, and never on the live signal path.
+
+24. Product Differentiation Roadmap
+
+Level 1 — Switching
+
+"Can I cut and fade between video sources reliably?"
+
+Level 2 — Mixing
+
+"Can I control audio levels live without a separate mixer?"
+
+Level 3 — Unified Cueing
+
+"Can one cue affect video, audio, and lighting together?"
+
+Level 4 — Reliable Live Operation
+
+"Will this survive a dropped signal or a crashed process without embarrassing the operator?"
+
+Level 5 — Integrated Production Stack
+
+"Does this work naturally with the commissioning and automation tools I already use?"
+
+The final level is the differentiator that turns this from "another switcher" into part of a coherent TPT production stack.
+
+25. Commercial Product Packaging
+
+Standard
+
+single-operator console
+
+moderate source/output count
+
+DMX scene-recall lighting cues
+
+one control-surface protocol
+
+one-machine licence
+
+Professional
+
+higher source/output counts
+
+richer transitions and compositing
+
+multiple control-surface protocols
+
+priority updates
+
+Broadcast
+
+redundancy features
+
+integrator-managed deployment support
+
+commercial support
+
+Do not build Broadcast-tier redundancy features until there is evidence customers need them.
+
+26. Strategic Product Boundary
+
+Do not turn this into:
+
+a full lighting console (no attempt to replace grandMA/ChamSys for complex lighting design)
+
+a full NLE
+
+a built-in streaming-encoder product
+
+a rule-automation authoring tool (that is TPT AV Automation)
+
+a pre-show installation testing tool (that is TPT AV Commissioning)
+
+It may recall lighting scenes and manage playback assets because those are necessary for a unified cue stack. But the product's centre of gravity must remain:
+
+Switch
+Mix
+Cue
+Run the show live
+
+27. Definition of Done
+
+The first release is ready for paid users when:
+
+A user can install the application without development tooling.
+
+A show file can be created, saved, and reloaded.
+
+Video sources can be switched between preview and program with cut and fade transitions, frame-accurately.
+
+Audio channels can be mixed live with ramped, glitch-free gain/mute changes.
+
+A cue can attach a video transition, audio change, and lighting scene together and execute them in sync.
+
+Rehearsal mode is fully isolated from live outputs, with an unmistakable Live/Rehearsal indicator at all times.
+
+At least one control-surface protocol can drive switcher/mixer/cue-stack functions.
+
+Input-loss failsafe behaviour (freeze/backup/slate, audio mute-on-error) works as configured.
+
+The engine runs under watchdog supervision and recovers from an unexpected process exit.
+
+Graceful degradation under CPU/GPU pressure protects program output before anything else.
+
+The CLI can validate a show file and headlessly rehearse its cue stack.
+
+A malformed show file or unexpected input signal cannot crash the application mid-show.
+
+Golden cue-stack tests and latency/frame-timing benchmarks are in place as regression gates.
+
+Chaos tests confirm recovery from signal loss, control-surface disconnect, and process restart.
+
+No internet connection is required for core live operation.
+
+A clean-machine installation has been tested.
+
+Performance has been benchmarked under realistic multi-source, multi-output load.
+
+28. Recommended Implementation Order
+
+Establish Cargo workspace and application shell.
+
+Integrate tpt-kinetix and implement the basic PVW/PGM switcher model.
+
+Implement cut and fade transitions with frame-accurate timing.
+
+Integrate tpt-cadence/tpt-audio/tpt-dsp and implement the channel-strip/bus mixer model.
+
+Implement cue-triggered ramped audio changes.
+
+Integrate tpt-av-control and implement DMX scene recall as a lighting cue type.
+
+Implement the cue/cue-stack domain model and manual/timed advance.
+
+Implement rehearsal vs. live mode isolation.
+
+Integrate tpt-av-control for control-surface input and implement mapping configuration.
+
+Implement input-loss failsafe policies and audio mute-on-error.
+
+Implement watchdog supervision and graceful-degradation ordering.
+
+Implement show-file save/load and validation.
+
+Implement the CLI (validate, headless rehearse).
+
+Implement the desktop live-operation console and rehearsal mode.
+
+Implement source/output configuration, including optional import from a TPT AV Commissioning report.
+
+Implement control-surface mapping UI.
+
+Implement the show browser and session history/logging.
+
+Add golden cue-stack regression tests.
+
+Add latency/frame-timing benchmark suite as CI regression gates.
+
+Add chaos tests (signal loss, control-surface disconnect, process restart, load-induced degradation).
+
+Add fuzzing for show-file and control-surface message parsing.
+
+Harden error handling and failure isolation.
+
+Package Windows release; validate on representative production hardware.
+
+Run a private beta with a real live-event production team.
+
+Only then expand into Phase 2 (richer lighting effects, deeper AV Automation integration, multi-operator control).
+
+29. Strategic Constraint
+
+Do not attempt to match every feature of vMix, ATEM, or a dedicated lighting console on version 1.
+
+Those products have years of format support, hardware integrations, and workflow polish in their respective single categories. TPT's first advantage should instead be:
+
+A single, native, real-time-safe application that unifies video switching, audio mixing, and lighting cueing behind one cue stack, offline-first, with explicit rehearsal/live safety and built-in failsafe behaviour — and that fits naturally alongside TPT AV Commissioning and TPT AV Automation as part of one coherent production stack, rather than as an isolated switcher competing feature-for-feature with established single-purpose tools.
+
+Then use the open TPT AV foundation to expand source/output coverage, lighting depth, and integration breadth over time. The commercial application should be the place where a live show's video, audio, and lighting finally answer to one operator, one console, and one cue stack.
