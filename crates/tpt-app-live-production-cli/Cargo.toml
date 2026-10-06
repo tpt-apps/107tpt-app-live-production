@@ -1,0 +1,20 @@
+[package]
+name = "tpt-app-live-production-cli"
+description = "CLI for TPT Live Production: show-file validation and headless rehearsal (stable exit-code contract, spec 16)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "tpt-live-production"
+path = "src/main.rs"
+
+[dependencies]
+tpt-app-live-production-model = { workspace = true }
+tpt-app-live-production-core = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

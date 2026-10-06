@@ -1,0 +1,15 @@
+[package]
+name = "tpt-app-live-production-cues"
+description = "Cue stack execution for TPT Live Production: manual, timed, and follow advance with live-safe editing"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+tpt-app-live-production-model = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }

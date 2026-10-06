@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>TPT Live Production</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: "Segoe UI", system-ui, sans-serif;
+    background: #14161a; color: #d8dce2; display: flex; flex-direction: column;
+    height: 100vh; user-select: none;
+  }
+  header {
+    display: flex; align-items: center; gap: 16px; padding: 10px 16px;
+    background: #1c1f24; border-bottom: 1px solid #2a2e35;
+  }
+  header h1 { font-size: 15px; margin: 0; font-weight: 600; color: #9aa2ad; }
+  #mode-badge {
+    font-size: 20px; font-weight: 800; letter-spacing: 2px;
+    padding: 6px 22px; border-radius: 6px; border: 2px solid;
+  }
+  #mode-badge.rehearsal { color: #ffd75e; border-color: #ffd75e; background: #33290c; }
+  #mode-badge.live { color: #fff; border-color: #ff453a; background: #a3231c; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 50% { opacity: 0.65; } }
+  main { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; overflow: auto; }
+  .monitors { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; grid-column: 1 / -1; }
+  .monitor { border: 2px solid #2a2e35; border-radius: 8px; background: #0c0d10;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 180px; }
+  .monitor.program { border-color: #ff453a; }
+  .monitor h2 { margin: 0 0 6px; font-size: 12px; letter-spacing: 2px; color: #6b7280; }
+  .monitor .source { font-size: 34px; font-weight: 700; }
+  .monitor .transition { font-size: 12px; color: #8b929c; height: 16px; }
+  .transitions { grid-column: 1 / -1; display: flex; gap: 12px; justify-content: center; }
+  button {
+    font-size: 18px; font-weight: 700; padding: 14px 34px; border-radius: 8px;
+    border: 1px solid #3a3f47; background: #24282f; color: #d8dce2; cursor: pointer;
+  }
+  button:hover { background: #2d323a; }
+  button:active { transform: translateY(1px); }
+  .panels { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .panel { border: 1px solid #2a2e35; border-radius: 8px; padding: 12px; background: #181b20; }
+  .panel h3 { margin: 0 0 10px; font-size: 12px; letter-spacing: 2px; color: #6b7280; }
+  .strip { display: grid; grid-template-columns: 90px 1fr 60px; align-items: center; gap: 10px; margin: 6px 0; }
+  .meter { height: 12px; background: #23262c; border-radius: 6px; overflow: hidden; }
+  .meter > div { height: 100%; width: 0%; background: linear-gradient(90deg, #34c759, #ffd75e 70%, #ff453a); }
+  .cuerow { display: flex; gap: 10px; padding: 7px 8px; border-radius: 6px; font-size: 14px; }
+  .cuerow.current { background: #26304a; color: #9ec1ff; }
+  .cuerow.next { background: #22262e; outline: 1px dashed #3a4356; }
+  .cuerow .num { width: 40px; color: #6b7280; font-variant-numeric: tabular-nums; }
+  footer { padding: 8px 16px; color: #565d66; font-size: 12px; border-top: 1px solid #2a2e35; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>TPT LIVE PRODUCTION</h1>
+    <div id="mode-badge" class="rehearsal">REHEARSAL</div>
+    <span id="show-name"></span>
+    <span id="degradation"></span>
+    <span id="lost-inputs" style="color:#ff8b84"></span>
+  </header>
+  <main>
+    <div class="monitors">
+      <div class="monitor"><h2>PREVIEW</h2><div class="source" id="preview">—</div><div class="transition"></div></div>
+      <div class="monitor program"><h2>PROGRAM</h2><div class="source" id="program">—</div><div class="transition" id="prog-transition"></div></div>
+    </div>
+    <div class="transitions">
+      <button id="btn-cut">CUT</button>
+      <button id="btn-fade">FADE</button>
+      <button id="btn-go" style="background:#1d4425; border-color:#34c759;">GO ▶</button>
+    </div>
+    <div class="panels">
+      <div class="panel">
+        <h3>AUDIO</h3>
+        <div id="audio-strips"></div>
+      </div>
+      <div class="panel">
+        <h3>CUE STACK</h3>
+        <div id="cue-stack"></div>
+      </div>
+    </div>
+  </main>
+  <footer>
+    Sources are selected from the show file (Source/Output configuration screen lands with the full console).
+    MODE always shows colour + text.
+  </footer>
+<script>
+  const { invoke } = window.__TAURI__.core;
+  const knownSources = ["cam1", "cam2", "backup", "slate"];
+
+  async function refresh() {
+    const s = await invoke("get_state").catch(() => null);
+    if (!s) return;
+    const badge = document.getElementById("mode-badge");
+    badge.textContent = s.state.mode === "live" ? "LIVE" : "REHEARSAL";
+    badge.className = s.state.mode === "live" ? "live" : "rehearsal";
+    document.getElementById("show-name").textContent = s.state.name;
+    document.getElementById("preview").textContent = s.state.preview;
+    document.getElementById("program").textContent = s.state.program;
+    document.getElementById("prog-transition").textContent = s.state.transitioning ? "transitioning…" : "";
+    document.getElementById("degradation").textContent =
+      s.state.degradation === "normal" ? "" : "DEGRADED: " + s.state.degradation;
+    document.getElementById("lost-inputs").textContent =
+      s.state.lost_inputs.length ? "SIGNAL LOST: " + s.state.lost_inputs.join(", ") : "";
+
+    const strips = document.getElementById("audio-strips");
+    strips.innerHTML = "";
+    for (const [bus, peak, rms] of s.state.meters) {
+      const row = document.createElement("div");
+      row.className = "strip";
+      row.innerHTML = `<span>${bus}</span><div class="meter"><div style="width:${Math.min(100, peak * 100)}%"></div></div><span>${peak.toFixed(2)}</span>`;
+      strips.appendChild(row);
+    }
+
+    const stack = document.getElementById("cue-stack");
+    stack.innerHTML = "";
+    for (let i = 1; i <= Math.max(s.state.current_cue?.[0] ?? 0, 0); i++) { /* filled below via show cues */ }
+    if (s.state.current_cue) {
+      const row = document.createElement("div");
+      row.className = "cuerow current";
+      row.innerHTML = `<span class="num">▶ ${s.state.current_cue[0]}</span><span>${s.state.current_cue[1]}</span>`;
+      stack.appendChild(row);
+    }
+    if (s.state.next_cue) {
+      const row = document.createElement("div");
+      row.className = "cuerow next";
+      row.innerHTML = `<span class="num">→ ${s.state.next_cue[0]}</span><span>${s.state.next_cue[1]}</span>`;
+      stack.appendChild(row);
+    }
+  }
+
+  document.getElementById("btn-go").onclick = () => invoke("go");
+  document.getElementById("btn-cut").onclick = () => invoke("take_cut");
+  document.getElementById("btn-fade").onclick = () => invoke("take_fade", { durationMs: 800 });
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "Space") { e.preventDefault(); invoke("go"); }
+    if (e.key === "c") invoke("take_cut");
+    if (e.key === "f") invoke("take_fade", { durationMs: 800 });
+  });
+
+  setInterval(refresh, 100);
+  refresh();
+</script>
+</body>
+</html>

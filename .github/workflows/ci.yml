@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      # Foundation path deps are sibling checkouts; CI checks them out too.
+      - name: Checkout TPT AV foundations
+        run: |
+          cd ..
+          git clone --depth 1 https://github.com/tpt-solutions/tpt-av-control.git
+          git clone --depth 1 https://github.com/tpt-solutions/tpt-av-test.git
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Test (debug)
+        run: cargo test --workspace
+      - name: Test with API feature
+        run: cargo test --workspace --features tpt-app-live-production-core/api
+      - name: Latency gates (release, strict)
+        run: cargo test --release -p tpt-app-live-production-test
+        env:
+          TPT_LATENCY_GATE: strict
+
+  fuzz-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Checkout TPT AV foundations
+        run: |
+          cd ..
+          git clone --depth 1 https://github.com/tpt-solutions/tpt-av-control.git
+          git clone --depth 1 https://github.com/tpt-solutions/tpt-av-test.git
+      - name: Deterministic fuzz corpora
+        run: cargo test -p tpt-app-live-production-test --test fuzz

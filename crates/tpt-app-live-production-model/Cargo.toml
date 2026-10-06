@@ -1,0 +1,17 @@
+[package]
+name = "tpt-app-live-production-model"
+description = "Core domain model for TPT Live Production: show, sources, outputs, buses, fixtures, lighting scenes, and the cue stack"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+thiserror = { workspace = true }

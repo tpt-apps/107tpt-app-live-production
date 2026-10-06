@@ -1,0 +1,28 @@
+[package]
+name = "tpt-app-live-production-test"
+description = "Integration, chaos, golden-fixture, latency-gate, fuzz, and real-time-safety tests for TPT Live Production (spec 21)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+tpt-app-live-production-model = { workspace = true }
+tpt-app-live-production-core = { workspace = true, features = ["api"] }
+tpt-app-live-production-switcher = { workspace = true }
+tpt-app-live-production-mixer = { workspace = true }
+tpt-app-live-production-lighting = { workspace = true }
+tpt-app-live-production-cues = { workspace = true }
+tpt-app-live-production-surfaces = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+# Installs the tracking global allocator for every test binary here, so the
+# RT-safety tests can count allocations on the render path (spec 21, reuse
+# of tpt-av-test per spec 5.1).
+tpt-av-test-benchmark = { workspace = true, features = ["tracking-allocator"] }
+tpt-av-control-osc = { workspace = true }

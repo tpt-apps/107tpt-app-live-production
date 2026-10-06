@@ -1,0 +1,58 @@
+{
+  "show": "Golden Demo",
+  "cues": 4,
+  "fired": [
+    {
+      "number": 1,
+      "label": "Cold open",
+      "fired_at_ms": 16,
+      "program_after": "cam1",
+      "lighting": null,
+      "audio_changes": 1
+    },
+    {
+      "number": 2,
+      "label": "Guest intro",
+      "fired_at_ms": 48,
+      "program_after": "cam2",
+      "lighting": "guest_look",
+      "audio_changes": 0
+    },
+    {
+      "number": 3,
+      "label": "VT playback",
+      "fired_at_ms": 2032,
+      "program_after": "backup",
+      "lighting": null,
+      "audio_changes": 1
+    },
+    {
+      "number": 4,
+      "label": "Return",
+      "fired_at_ms": 2064,
+      "program_after": "cam1",
+      "lighting": "open_look",
+      "audio_changes": 0
+    }
+  ],
+  "final_program": "cam1",
+  "lighting_end": [
+    [
+      1,
+      1,
+      255
+    ],
+    [
+      1,
+      2,
+      128
+    ],
+    [
+      1,
+      3,
+      200
+    ]
+  ],
+  "issues": [],
+  "completed": true
+}

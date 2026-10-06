@@ -1,0 +1,134 @@
+# Sunday Service template.
+#
+# A starting point for a typical house-of-worship / corporate-event show:
+# two cameras, a laptop (graphics/VT), a host mic and a band mic, a
+# program + monitor audio bus, basic stage lighting, and a four-cue
+# run-sheet. Duplicate this file and edit ids/labels to the room.
+
+schema_version = 1
+name = "Sunday Service Template"
+id = "sunday-service-template"
+
+[settings]
+video_fps = 60
+sample_rate = 48000
+block_frames = 128
+ramp_ms = 25
+
+[[outputs]]
+id = "pgm_video"
+kind = "program_video"
+label = "Projection / stream"
+
+[[outputs]]
+id = "pa"
+kind = "program_audio"
+label = "House PA"
+
+[[outputs]]
+id = "monitors"
+kind = "aux_audio"
+label = "Stage monitors"
+
+[[outputs]]
+id = "stage_lights"
+kind = "lighting_universe"
+label = "Stage lighting"
+universe = 1
+
+[[sources]]
+id = "cam_lectern"
+kind = "live_video_input"
+label = "Lectern camera"
+
+[[sources]]
+id = "cam_wide"
+kind = "live_video_input"
+label = "Wide camera"
+
+[[sources]]
+id = "laptop"
+kind = "graphic"
+label = "Slides / VT laptop"
+
+[[sources]]
+id = "host_mic"
+kind = "live_audio_input"
+label = "Host mic"
+
+[[sources]]
+id = "band_mic"
+kind = "live_audio_input"
+label = "Band mic"
+
+[[buses]]
+id = "program_bus"
+label = "Program"
+output = "pa"
+
+[[buses.inputs]]
+source = "host_mic"
+gain_db = 0.0
+
+[[buses.inputs]]
+source = "band_mic"
+gain_db = -6.0
+
+[[buses]]
+id = "monitor_bus"
+label = "Monitors"
+output = "monitors"
+
+[[buses.inputs]]
+source = "host_mic"
+gain_db = 0.0
+
+[[fixtures]]
+id = "wash"
+label = "Stage wash"
+universe = "stage_lights"
+channels = [{ address = 1, role = "intensity" }]
+
+[[scenes]]
+id = "full"
+label = "Full stage"
+fade_ms = 2000
+
+[[scenes.values]]
+fixture = "wash"
+channels = [255]
+
+[[scenes]]
+id = "dim"
+label = "Dim for video"
+fade_ms = 2000
+
+[[scenes.values]]
+fixture = "wash"
+channels = [80]
+
+[[cues]]
+number = 1
+label = "Welcome"
+video = { transition = "cut", source = "cam_lectern" }
+audio = [{ action = "set_mute", source = "host_mic", muted = false }]
+lighting = "full"
+
+[[cues]]
+number = 2
+label = "Slides"
+video = { transition = "fade", source = "laptop", duration_ms = 800 }
+lighting = "dim"
+
+[[cues]]
+number = 3
+label = "Worship — wide"
+video = { transition = "fade", source = "cam_wide", duration_ms = 1200 }
+audio = [{ action = "set_gain", source = "band_mic", gain_db = 0.0 }]
+lighting = "full"
+
+[[cues]]
+number = 4
+label = "Message"
+video = { transition = "cut", source = "cam_lectern" }
+audio = [{ action = "set_gain", source = "band_mic", gain_db = -30.0 }]

@@ -1,0 +1,64 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+# The Tauri desktop shell is a member so it participates in the workspace,
+# but it is excluded from the default build/test set: it pulls the full
+# Tauri/wry stack and requires the `tauri` CLI + a built frontend bundle.
+# Build it explicitly with `cargo build -p tpt-app-live-production-tauri`.
+default-members = [
+    "crates/tpt-app-live-production-model",
+    "crates/tpt-app-live-production-switcher",
+    "crates/tpt-app-live-production-mixer",
+    "crates/tpt-app-live-production-lighting",
+    "crates/tpt-app-live-production-cues",
+    "crates/tpt-app-live-production-surfaces",
+    "crates/tpt-app-live-production-core",
+    "crates/tpt-app-live-production-cli",
+    "crates/tpt-app-live-production-test",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.82"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpt-solutions/tpt-app-live-production"
+authors = ["TPT Solutions"]
+keywords = ["live-production", "video-switcher", "audio-mixer", "dmx", "cue-stack"]
+categories = ["multimedia", "command-line-utilities"]
+
+[workspace.dependencies]
+# Internal crates
+tpt-app-live-production-model = { path = "crates/tpt-app-live-production-model" }
+tpt-app-live-production-switcher = { path = "crates/tpt-app-live-production-switcher" }
+tpt-app-live-production-mixer = { path = "crates/tpt-app-live-production-mixer" }
+tpt-app-live-production-lighting = { path = "crates/tpt-app-live-production-lighting" }
+tpt-app-live-production-cues = { path = "crates/tpt-app-live-production-cues" }
+tpt-app-live-production-surfaces = { path = "crates/tpt-app-live-production-surfaces" }
+tpt-app-live-production-core = { path = "crates/tpt-app-live-production-core" }
+tpt-app-live-production-test = { path = "crates/tpt-app-live-production-test" }
+
+# TPT AV foundation (sibling checkouts; see docs/integrations.md)
+tpt-av-control-dmx = { path = "../tpt-av-control/tpt-av-control-dmx", default-features = false }
+tpt-av-control-osc = { path = "../tpt-av-control/tpt-av-control-osc", default-features = false }
+tpt-av-test-benchmark = { path = "../tpt-av-test/tpt-av-test-benchmark", default-features = false }
+
+# Shared external dependencies
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.9"
+thiserror = "2"
+log = "0.4"
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Optional local API (feature `api`, off by default)
+tungstenite = "0.27"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+[profile.bench]
+lto = "thin"

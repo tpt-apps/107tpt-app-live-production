@@ -1,0 +1,15 @@
+[package]
+name = "tpt-app-live-production-switcher"
+description = "PVW/PGM video switcher for TPT Live Production: frame-accurate cut/fade/wipe transitions and single-overlay compositing"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+tpt-app-live-production-model = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }

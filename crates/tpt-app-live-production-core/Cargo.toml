@@ -1,0 +1,27 @@
+[package]
+name = "tpt-app-live-production-core"
+description = "Real-time engine core for TPT Live Production: unified cue executor, rehearsal/live isolation, failsafe policies, watchdog, degradation, session logs, and the optional localhost API"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+tpt-app-live-production-model = { workspace = true }
+tpt-app-live-production-switcher = { workspace = true }
+tpt-app-live-production-mixer = { workspace = true }
+tpt-app-live-production-lighting = { workspace = true }
+tpt-app-live-production-cues = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+
+# Optional localhost API (feature `api`, off by default — spec 17)
+tungstenite = { workspace = true, optional = true }
+
+[features]
+default = []
+api = ["dep:tungstenite"]

@@ -1,0 +1,25 @@
+[package]
+name = "tpt-app-live-production-surfaces"
+description = "Control-surface layer for TPT Live Production: configurable mapping to switcher/mixer/cue actions, feedback, and graceful disconnect handling"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+tpt-app-live-production-model = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+
+# OSC control-surface transport (feature `osc`)
+tpt-av-control-osc = { workspace = true, optional = true }
+
+[features]
+default = ["osc"]
+osc = ["dep:tpt-av-control-osc"]
+
+[dev-dependencies]
+serde_json = { workspace = true }

@@ -1,0 +1,22 @@
+[package]
+name = "tpt-app-live-production-lighting"
+description = "Lighting cue engine for TPT Live Production: DMX scene recall with configurable fade timing over Art-Net/sACN"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+tpt-app-live-production-model = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+
+# Real DMX output (Art-Net / sACN) via the TPT AV control foundation.
+tpt-av-control-dmx = { workspace = true, optional = true }
+
+[features]
+default = ["sacn"]
+sacn = ["dep:tpt-av-control-dmx"]

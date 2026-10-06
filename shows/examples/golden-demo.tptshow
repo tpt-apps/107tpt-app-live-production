@@ -1,0 +1,129 @@
+# Golden cue-stack demo show.
+#
+# This show is a regression fixture (spec 21.2): `tests/golden.rs` runs it
+# headlessly and compares the engine state after each cue against
+# `tests/fixtures/golden/golden-demo.expected.json`. Engine changes that
+# silently alter existing show behaviour will fail this test.
+
+schema_version = 1
+name = "Golden Demo"
+id = "golden-demo"
+
+[settings]
+video_fps = 60
+sample_rate = 48000
+block_frames = 128
+ramp_ms = 25
+
+[[outputs]]
+id = "pgm_video"
+kind = "program_video"
+label = "Program"
+
+[[outputs]]
+id = "pa"
+kind = "program_audio"
+label = "PA"
+
+[[outputs]]
+id = "house"
+kind = "lighting_universe"
+label = "House lights"
+universe = 1
+
+[[sources]]
+id = "cam1"
+kind = "live_video_input"
+label = "Camera 1"
+
+[[sources]]
+id = "cam2"
+kind = "live_video_input"
+label = "Camera 2"
+
+[[sources]]
+id = "backup"
+kind = "live_video_input"
+label = "Backup camera"
+
+[[sources]]
+id = "slate"
+kind = "graphic"
+label = "Signal lost slate"
+
+[[sources]]
+id = "host_mic"
+kind = "live_audio_input"
+label = "Host microphone"
+
+[[buses]]
+id = "program_bus"
+label = "Program"
+output = "pa"
+
+[[buses.inputs]]
+source = "host_mic"
+gain_db = 0.0
+
+[[fixtures]]
+id = "wash1"
+label = "Stage wash 1"
+universe = "house"
+channels = [{ address = 1, role = "intensity" }, { address = 2, role = "red" }]
+
+[[fixtures]]
+id = "wash2"
+label = "Stage wash 2"
+universe = "house"
+channels = [{ address = 3, role = "intensity" }]
+
+[[scenes]]
+id = "open_look"
+label = "Open look"
+fade_ms = 1000
+
+[[scenes.values]]
+fixture = "wash1"
+channels = [255, 128]
+
+[[scenes.values]]
+fixture = "wash2"
+channels = [200]
+
+[[scenes]]
+id = "guest_look"
+label = "Guest look"
+fade_ms = 1500
+
+[[scenes.values]]
+fixture = "wash1"
+channels = [180, 40]
+
+[[scenes.values]]
+fixture = "wash2"
+channels = [255]
+
+[[cues]]
+number = 1
+label = "Cold open"
+video = { transition = "cut", source = "cam1" }
+audio = [{ action = "set_mute", source = "host_mic", muted = false }]
+
+[[cues]]
+number = 2
+label = "Guest intro"
+video = { transition = "fade", source = "cam2", duration_ms = 600 }
+lighting = "guest_look"
+advance = { mode = "timed", after_ms = 2000 }
+
+[[cues]]
+number = 3
+label = "VT playback"
+video = { transition = "cut", source = "backup" }
+audio = [{ action = "set_gain", source = "host_mic", gain_db = -12.0 }]
+
+[[cues]]
+number = 4
+label = "Return"
+video = { transition = "fade", source = "cam1", duration_ms = 800 }
+lighting = "open_look"

@@ -1,0 +1,35 @@
+[package]
+name = "tpt-live-production-fuzz"
+version = "0.1.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+notes = "cargo-fuzz targets for the three untrusted-input boundaries (spec 21.5). cargo-fuzz requires nightly + libFuzzer and runs on Linux CI; the same contracts are asserted deterministically on any platform by crates/tpt-app-live-production-test/tests/fuzz.rs."
+
+[dependencies]
+libfuzzer-sys = "0.4"
+tpt-app-live-production-model = { path = "../crates/tpt-app-live-production-model" }
+tpt-app-live-production-core = { path = "../crates/tpt-app-live-production-core" }
+tpt-av-control-osc = { path = "../tpt-av-control/tpt-av-control-osc", default-features = false }
+
+[[bin]]
+name = "showfile_parser"
+path = "fuzz_targets/showfile_parser.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "osc_message_parser"
+path = "fuzz_targets/osc_message_parser.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "show_validation"
+path = "fuzz_targets/show_validation.rs"
+test = false
+doc = false
+bench = false

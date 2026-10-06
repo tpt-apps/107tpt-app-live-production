@@ -1,0 +1,30 @@
+[package]
+name = "tpt-app-live-production-tauri"
+description = "Tauri desktop shell for TPT Live Production (build with the tauri CLI; excluded from the default workspace build)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[lib]
+name = "tpt_app_live_production_tauri_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "tpt-app-live-production-tauri"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tpt-app-live-production-model = { workspace = true }
+tpt-app-live-production-core = { workspace = true }
+tpt-app-live-production-mixer = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+log = { workspace = true }
+tauri = { version = "2", features = [] }
